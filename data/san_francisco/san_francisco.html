@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  <meta charset="UTF-8">
+	  
+	<title>Disparity and Proximity</title>
+	<script src="/static/javascripts/d3.v3.min.js"></script>
+	<script src="/static/javascripts/topojson.v1.min.js"></script>
+	<script src="/static/javascripts/jquery.min.js"></script>
+	<script src="/static/javascripts/d3.tip.v0.6.3.js"></script>
+	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script src="http://d3js.org/queue.v1.min.js"></script>
+	<script src="/static/javascripts/jquery-ui.min.js"></script>
+	<link rel="stylesheet" href="/static/stylesheets/jquery-ui.css" />
+	<link rel="stylesheet" href="/static/bootstrap-3.1.1-dist/css/bootstrap.min.css">
+	<script src="/static/javascripts/jquery-ui.min.js"></script>
+	<link href="/static/bootstrap-3.1.1-dist/css/bootstrap-glyphicons.css" rel="stylesheet">
+	<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
+	<link href='http://fonts.googleapis.com/css?family=EB+Garamond' rel='stylesheet' type='text/css'>
+
+	<link rel="stylesheet" type="text/css" href="/static/stylesheets/fracture.css"> </style>
+	
+      <!-- Google Analytics -->
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-47759411-2', 'youarehere.cc');
+        ga('send', 'pageview');
+      </script>
+</head>
+
+<body>
+	<!--<div id = "reset-all"><a href="javascript:redrawFilteredMaps(0,global.maxIncome); resetFilter()">Reset All</a></div> -->
+	<div id = "income-label"></div>
+	<div id="containers">
+		<div id="svg-1"></div>
+	</div>
+
+	<div id="scale"></div>
+	<div id = "header">
+			<div id = "title"></div>
+			<div id = "subtitle">
+				Inequality fractures the city, this map draws boundaries formed by income disparity inside current city
+				<a href="#" id="example-show" class="showLink" onclick="showHide('example');return false;">... more</a></p>
+    			<div id="example" class="more">
+					<p>
+					Lines are constantly being drawn across our cities, visible boundaries in the form of fences and highways, 
+					as well as invisible ones formed by discrepancies in the educational,
+					financial and demographic makeup of our city. 
+					This map draws lines between census block groups with comparable populations whose percentile differences in median household income is more than 25%.
+					
+					This map focuses on the differences that fracture the city rather than where poverty or wealth is concentrated. But it is worth noting that in a city that is dynamic in so many other ways, large areas of poverty and wealth remain isolated. Where poverty and wealth do intersect, at these drawn lines, are places where we are most likely to see inequality.
+					
+					</p>
+					<p>
+					On the other hand, these intersections also point to potentials for growth 
+					or the contentious process of gentrification.
+					
+					The future growth of a place, similar to humans, is often dependent on the wellbeing and qualities its  larger environment and its closest neighbors.
+					
+					For this reason, we show an additional bar graph of adjacent median incomes 
+					when a given block group is highlighted.
+					
+					We represent the median household income of the highlighted block group along with 
+					all its adjacent block groups in order of income to show the context of each area's income.
+					</p>
+					<p><a href="#" id="example-hide" class="hideLink" onclick="showHide('example');return false;">... less</a></p>
+				</div>
+				<div id="topDifferences">	
+					<p class="showTop">Highlight top differences</p>
+					<p class="hideTop">Hide top differences</p>
+				</div>
+			</div>
+			<div id="current-details"></div>
+			<div id = "svg-2"></div>
+	</div>
+	
+	<script type="text/javascript" charset="utf-8">
+	var center = [-87.7,41.95]
+	var minDifference = 25
+	var scale=70000
+	var water = null
+	var urlArray = document.URL.split("/")
+	var city = "san_francisco"
+//	if(city == null){
+//		city = "boston"
+//	}
+	//city = city.split(",")[0]
+	console.log(city)
+    var city_centers = {"new_york":[-74.1, 40.8],"chicago":[-87.7,41.95],"austin":[-97.8,30.4],"boston":[-71.15,42.4],"dallas":[-97.2,33],"houston":[-95.6,30],"los_angeles":[-118.3, 34.2],"san_francisco":[ -122.38,37.79],"atlanta":[-84.6, 33.85],"philadelphia":[-84.6, 33.85],"springfield_ma":[-72.54,42.1155], "baltimore":[-76.61,39.30],"washington":[-77.017,38.90], "pittsburgh":[-79.977, 40.44],"san_antonio":[-98.525, 29.47],"san_diego":[-117.135, 32.815],"san_jose":[-121.819,37.297],"sacramento":[-121.469,38.567],"el_paso":[-106.427,31.8484],"memphis":[-89.979,35.104],"nashville":[-81.6613, 30.337],"indianapolis":[-86.15, 39.777],"phoenix":[-112.09,33.57], "jacksonville": [-81.6613, 30.337], "miami": [-80.2086, 25.7752], "cincinnati":[-84.5064,39.1399], "columbus": [-82.985, 39.9848], "dayton": [-84.1996, 39.7774], "toledo": [-83.5819, 41.6641], "akron":[-81.5214, 41.0805], "charlotte":[-80.8307,35.2087], "detroit": [-83.1022, 42.383], "seattle" : [-122.3509, 47.6205], "denver":[-104.8806, 39.7618],"raleigh":[-78.6414, 35.8302], "colorado_springs":[-104.7607, 38.8673],"madison": [-89.4301, 43.0878], "new_orleans": [-89.939, 30.0686], "las_vegas": [-115.264, 36.2277], "fresno": [-119.7945, 36.7827], "wichita": [-97.3427, 37.6907], "fort_worth": [-97.3463, 32.7795], "lexington": [-84.4584, 38.0402], "minneapolis": [-93.2683, 44.9633], "shreveport": [-93.7927, 32.467], "louisville": [-85.6667, 38.1781], "salem": [-123.0231, 44.9237], "reno": [-119.7765, 39.4745], "kansas_city": [-94.7418, 39.1225], "milwaukee": [-87.9667, 43.0633], "portland": [-122.65, 45.537], "oakland": [-122.2256, 37.7699], "eugene": [-123.1162, 44.0567],"honolulu": [-157.8453, 21.3259],"albuquerque": [-106.6474, 35.1056],"saint_louis": [-90.2446,38.6357],"tucson":[-110.8711,32.1543]}
+
+	var global = {
+		usMapWidth:1200,
+		usMapHeight:900,
+		max:200000,
+		maxIncome:250000,
+		gradientStart:"#fff",
+		gradientEnd:"#ddd",
+		scale:80000,
+		center:city_centers[city],
+		neighbors:null,
+		translate:[0,0],
+		translateScale:1,
+		mapFillColor:null,
+		minDifference:25
+	}
+	
+	
+	var csv1 = "/income/san_francisco.csv"
+	var geojson1 = "/blockgroups/san_francisco.geojson"
+	var overlap = "/overlap/san_francisco.csv"
+	var neighbors = "/geoid_neighbor_hash/san_francisco.json"
+	var neighborhoods = "/nhoods/san_francisco.geojson"
+	</script>
+	
+	  <script src="/static/proximity_disparity.js"></script>
+	<div id = "footer">
+		<div id ="credit">
+			<a href="http://youarehere.cc"><img src="/static/images/logo.png" alt="" style="width:20px;height:25px"></a>
+			
+			This work is part of the <a href="http://youarehere.cc">You Are Here</a> project +
+	        <a href="http://socialcomputing.media.mit.edu"> The Social Computing Group </a>+
+	        <a href="http://media.mit.edu"target = "blank"> MIT Media Lab </a> + <a href="http://mit.edu" target = "blank"> MIT</a> | 
+			<a href="http://youarehere.cc/#/report" target = "blank">Feedback</a> | <a href="http://youarehere.cc/#/faq" target = "blank">FAQ</a>	 | <a href="https://github.com/jjjiia/city_comparisons" target="blank">How it's made</a>
+
+|<script type="text/javascript">
+					  function embedMe(){
+					    var params = {
+					      map: window.location.href,
+					      width: 1000,
+						  height:750
+						  //width: $('body > .container').outerWidth(),
+					      //height: $('body > .container').outerHeight()
+					    };
+					    window.location.href = '/#/embed/'+encodeURIComponent(JSON.stringify(params));
+					  }
+					</script>
+					<a href="#" onclick="embedMe()">Embed</a>
+		</div>
+	<div class="spacer"></div>
+</div>
+    </body>
+</html>
